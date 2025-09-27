@@ -1,8 +1,3 @@
-# trackers.txt gerado automaticamente
-# fonte(s): https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt, https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt, https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_udp.txt, https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_http.txt, https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_https.txt, https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ws.txt, https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_i2p.txt, https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt, https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt
-# gerado em: 2025-09-27T10:50:41.512884Z
-# linhas em ordem de aparição (duplicatas removidas)
-
 udp://tracker.opentrackr.org:1337/announce
 udp://public.demonoid.ch:6969/announce
 udp://open.demonoid.ch:6969/announce
