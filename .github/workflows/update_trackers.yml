@@ -30,21 +30,31 @@ jobs:
         run: |
           python update_trackers.py
 
-      - name: Commit & push if trackers.txt changed
+      - name: Commit & push if trackers.txt changed (use PAT)
+        env:
+          DEPLOY_PAT: ${{ secrets.PAT }}
+          COMMIT_NAME: ${{ secrets.COMMIT_NAME }}
+          COMMIT_EMAIL: ${{ secrets.COMMIT_EMAIL }}
         run: |
           echo "Mudanças (se existirem):"
           git status --porcelain
+
           if [ -n "$(git status --porcelain)" ]; then
             git add trackers.txt
-            # se não houver diferenças staged, git diff --staged --quiet retorna 0
+            # Se não houver diferenças staged, sai
             if git diff --staged --quiet; then
               echo "Sem mudanças reais a commitar."
-            else
-              # define o author só para este commit (não altera config global)
-              git commit --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" -m "Atualiza trackers.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
-              git push
-              echo "Pushed changes."
+              exit 0
             fi
+
+            # Faz o commit definindo o author apenas para este commit (não altera configs)
+            git commit --author="$COMMIT_NAME <$COMMIT_EMAIL>" -m "Atualiza trackers.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
+
+            # Push autenticado usando PAT (sem expor o token nos logs)
+            # envia para o branch atual
+            BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+            git push "https://x-access-token:${DEPLOY_PAT}@github.com/${{ github.repository }}" "HEAD:${BRANCH}"
+            echo "Pushed changes to ${BRANCH}."
           else
             echo "Nada modificado no repositório."
           fi
