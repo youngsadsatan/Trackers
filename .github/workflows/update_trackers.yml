@@ -1,4 +1,4 @@
-name: Atualizar trackers
+name: Update Trackers
 
 # Somente execução manual
 on:
