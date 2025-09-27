@@ -36,12 +36,14 @@ jobs:
           git status --porcelain
           if [ -n "$(git status --porcelain)" ]; then
             git add trackers.txt
-            # tenta commitar; se não houver mudanças reais, git commit falhará e cairá no else
-            if git commit -m "Atualiza trackers.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"; then
+            # se não houver diferenças staged, git diff --staged --quiet retorna 0
+            if git diff --staged --quiet; then
+              echo "Sem mudanças reais a commitar."
+            else
+              # define o author só para este commit (não altera config global)
+              git commit --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" -m "Atualiza trackers.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
               git push
               echo "Pushed changes."
-            else
-              echo "Commit falhou ou sem mudanças a commitar."
             fi
           else
             echo "Nada modificado no repositório."
