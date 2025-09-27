@@ -1,0 +1,48 @@
+name: Atualizar trackers
+
+# Somente execução manual
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run update script
+        run: |
+          python update_trackers.py
+
+      - name: Commit & push if trackers.txt changed
+        run: |
+          echo "Mudanças (se existirem):"
+          git status --porcelain
+          if [ -n "$(git status --porcelain)" ]; then
+            git add trackers.txt
+            # tenta commitar; se não houver mudanças reais, git commit falhará e cairá no else
+            if git commit -m "Atualiza trackers.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"; then
+              git push
+              echo "Pushed changes."
+            else
+              echo "Commit falhou ou sem mudanças a commitar."
+            fi
+          else
+            echo "Nada modificado no repositório."
+          fi
