@@ -30,7 +30,7 @@ jobs:
         run: |
           python update_trackers.py
 
-      - name: Commit & push if trackers.txt changed (use PAT)
+      - name: Commit & push if trackers.txt changed (use PAT or provided author)
         env:
           DEPLOY_PAT: ${{ secrets.PAT }}
           COMMIT_NAME: ${{ secrets.COMMIT_NAME }}
@@ -41,17 +41,41 @@ jobs:
 
           if [ -n "$(git status --porcelain)" ]; then
             git add trackers.txt
-            # Se não houver diferenças staged, sai
+
+            # se não houver diferenças staged, sai
             if git diff --staged --quiet; then
               echo "Sem mudanças reais a commitar."
               exit 0
             fi
 
-            # Faz o commit definindo o author apenas para este commit (não altera configs)
+            # Se COMMIT_NAME/COMMIT_EMAIL não fornecidos, tentar derivar com o PAT
+            if [ -z "$COMMIT_NAME" ] || [ -z "$COMMIT_EMAIL" ]; then
+              if [ -z "$DEPLOY_PAT" ]; then
+                echo "ERRO: COMMIT_NAME/COMMIT_EMAIL ausentes e PAT não fornecido. Aborting."
+                exit 1
+              fi
+
+              echo "COMMIT_NAME/COMMIT_EMAIL não definidos — consultando GitHub API com o PAT para obter identidade..."
+              user_json=$(curl -s -H "Authorization: token $DEPLOY_PAT" https://api.github.com/user)
+
+              # extrai nome (ou login) e email (ou monta login@users.noreply.github.com) usando Python (já disponível)
+              COMMIT_NAME=$(echo "$user_json" | python -c 'import sys,json;u=json.load(sys.stdin);print(u.get("name") or u.get("login") or "")')
+              COMMIT_EMAIL=$(echo "$user_json" | python -c 'import sys,json;u=json.load(sys.stdin);print(u.get("email") or (u.get("login")+"@users.noreply.github.com") if u.get("login") else "")')
+
+              if [ -z "$COMMIT_NAME" ] || [ -z "$COMMIT_EMAIL" ]; then
+                echo "ERRO: Não foi possível derivar COMMIT_NAME/COMMIT_EMAIL da API. Aborting."
+                exit 1
+              fi
+
+              echo "Usando autor derivado: $COMMIT_NAME <$COMMIT_EMAIL>"
+            else
+              echo "Usando author fornecido: $COMMIT_NAME <$COMMIT_EMAIL>"
+            fi
+
+            # commit com --author (não altera configs)
             git commit --author="$COMMIT_NAME <$COMMIT_EMAIL>" -m "Atualiza trackers.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
 
-            # Push autenticado usando PAT (sem expor o token nos logs)
-            # envia para o branch atual
+            # push autenticado usando PAT (sem expor token nos logs)
             BRANCH="$(git rev-parse --abbrev-ref HEAD)"
             git push "https://x-access-token:${DEPLOY_PAT}@github.com/${{ github.repository }}" "HEAD:${BRANCH}"
             echo "Pushed changes to ${BRANCH}."
