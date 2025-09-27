@@ -5,7 +5,6 @@
 # e grava trackers.txt na raiz do repositório.
 #
 # Requisitos: requests
-# (o workflow instalado abaixo instala requests automaticamente)
 
 from datetime import datetime
 import requests
@@ -86,16 +85,8 @@ def main():
                 seen.add(ln)
                 ordered.append(ln)
 
-    # Se quisermos também adicionar uma nota no topo com timestamp e fontes:
-    header_lines = [
-        "# trackers.txt gerado automaticamente",
-        f"# fonte(s): {', '.join(URLS)}",
-        f"# gerado em: {datetime.utcnow().isoformat()}Z",
-        "# linhas em ordem de aparição (duplicatas removidas)",
-        ""
-    ]
-
-    final_content = "\n".join(header_lines + ordered) + "\n"
+    # Agora gravamos APENAS os trackers, sem cabeçalho ou comentários.
+    final_content = "\n".join(ordered) + ("\n" if ordered else "")
 
     # grava o arquivo
     with open(OUTFILE, "w", encoding="utf-8") as f:
