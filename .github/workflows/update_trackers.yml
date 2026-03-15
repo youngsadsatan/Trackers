@@ -11,13 +11,15 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+      # ATUALIZADO: actions/checkout@v4 -> v5 (suporte a Node.js 24)
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: true
 
+      # ATUALIZADO: actions/setup-python@v4 -> v6 (suporte a Node.js 24)
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -43,13 +45,11 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git add trackers.txt
 
-            # Se não houver diferenças staged, sai
             if git diff --staged --quiet; then
               echo "Sem mudanças reais a commitar."
               exit 0
             fi
 
-            # Se COMMIT_NAME/COMMIT_EMAIL não fornecidos, tentar derivar com o PAT
             if [ -z "${COMMIT_NAME:-}" ] || [ -z "${COMMIT_EMAIL:-}" ]; then
               if [ -z "${DEPLOY_PAT:-}" ]; then
                 echo "ERRO: COMMIT_NAME/COMMIT_EMAIL ausentes e PAT não fornecido. Aborting."
@@ -72,11 +72,8 @@ jobs:
               echo "Usando author fornecido: $COMMIT_NAME <$COMMIT_EMAIL>"
             fi
 
-            # Faz o commit definindo temporariamente user.name/user.email para evitar erro de committer unknown.
-            # Também passamos --author para garantir o campo author como desejado.
             git -c user.name="$COMMIT_NAME" -c user.email="$COMMIT_EMAIL" commit --author="$COMMIT_NAME <$COMMIT_EMAIL>" -m "Atualiza trackers.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
 
-            # Push autenticado usando PAT (sem expor token nos logs)
             BRANCH="$(git rev-parse --abbrev-ref HEAD)"
             git push "https://x-access-token:${DEPLOY_PAT}@github.com/${{ github.repository }}" "HEAD:${BRANCH}"
             echo "Pushed changes to ${BRANCH}."
