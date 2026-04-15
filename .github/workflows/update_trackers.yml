@@ -1,6 +1,5 @@
 name: Update Trackers
 
-# Somente execução manual
 on:
   workflow_dispatch:
 
@@ -11,13 +10,11 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      # ATUALIZADO: actions/checkout@v4 -> v5 (suporte a Node.js 24)
       - name: Checkout repo
         uses: actions/checkout@v5
         with:
           persist-credentials: true
 
-      # ATUALIZADO: actions/setup-python@v4 -> v6 (suporte a Node.js 24)
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
         with:
@@ -32,7 +29,7 @@ jobs:
         run: |
           python update_trackers.py
 
-      - name: Commit & push if trackers.txt changed (use PAT or derived author)
+      - name: Commit & push if trackers files changed
         env:
           DEPLOY_PAT: ${{ secrets.PAT }}
           COMMIT_NAME: ${{ secrets.COMMIT_NAME }}
@@ -43,7 +40,7 @@ jobs:
           git status --porcelain
 
           if [ -n "$(git status --porcelain)" ]; then
-            git add trackers.txt
+            git add trackers.txt trackers_comma.txt
 
             if git diff --staged --quiet; then
               echo "Sem mudanças reais a commitar."
@@ -72,7 +69,7 @@ jobs:
               echo "Usando author fornecido: $COMMIT_NAME <$COMMIT_EMAIL>"
             fi
 
-            git -c user.name="$COMMIT_NAME" -c user.email="$COMMIT_EMAIL" commit --author="$COMMIT_NAME <$COMMIT_EMAIL>" -m "Atualiza trackers.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
+            git -c user.name="$COMMIT_NAME" -c user.email="$COMMIT_EMAIL" commit --author="$COMMIT_NAME <$COMMIT_EMAIL>" -m "Atualiza trackers.txt e trackers_comma.txt (automatizado) - $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
 
             BRANCH="$(git rev-parse --abbrev-ref HEAD)"
             git push "https://x-access-token:${DEPLOY_PAT}@github.com/${{ github.repository }}" "HEAD:${BRANCH}"
