@@ -1,28 +1,11 @@
 #!/usr/bin/env python3
-"""
-update_trackers.py - Baixa, combina e deduplica listas públicas de trackers BitTorrent.
-
-Funcionalidades:
-- Download de múltiplas listas de trackers a partir de URLs brutas do GitHub.
-- Filtragem de linhas vazias e comentários (linhas iniciadas com '#').
-- Remoção de duplicatas, preservando a ordem de primeira aparição.
-- Geração de um arquivo final limpo (trackers.txt) sem cabeçalhos ou metadados.
-- Tratamento robusto de erros com retries e timeouts.
-- Logs detalhados para fácil depuração.
-"""
 
 import logging
-from datetime import datetime
 from typing import List, Set
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-# ------------------------------------------------------------------------------
-# CONSTANTES E CONFIGURAÇÕES
-# ------------------------------------------------------------------------------
-
-# Lista de URLs (ATUALIZADA com as listas mais recentes do ngosang)
 URLS: List[str] = [
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt",
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt",
@@ -31,20 +14,18 @@ URLS: List[str] = [
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_https.txt",
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ws.txt",
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_i2p.txt",
-    # NOVAS LISTAS (yggdrasil)
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_yggdrasil.txt",
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt",
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt",
-    # NOVA LISTA (yggdrasil IP)
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_yggdrasil_ip.txt",
 ]
 
-OUTFILE: str = "trackers.txt"
-TIMEOUT: int = 15  # segundos
+OUTFILE_LINES: str = "trackers.txt"
+OUTFILE_COMMA: str = "trackers_comma.txt"
+TIMEOUT: int = 15
 RETRIES: int = 3
-BACKOFF_FACTOR: float = 1.0  # para backoff exponencial entre retries
+BACKOFF_FACTOR: float = 1.0
 
-# Configuração do logging (saída clara e timestamp)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -53,17 +34,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ------------------------------------------------------------------------------
-# FUNÇÕES AUXILIARES
-# ------------------------------------------------------------------------------
-
 def create_robust_session() -> requests.Session:
-    """
-    Cria uma sessão HTTP com retry automático e backoff exponencial.
-
-    Returns:
-        requests.Session: Sessão configurada para ser resiliente.
-    """
     session = requests.Session()
     retry_strategy = Retry(
         total=RETRIES,
@@ -78,16 +49,6 @@ def create_robust_session() -> requests.Session:
 
 
 def fetch_url_content(session: requests.Session, url: str) -> str | None:
-    """
-    Baixa o conteúdo de uma URL de forma segura.
-
-    Args:
-        session (requests.Session): Sessão HTTP a ser usada.
-        url (str): URL do arquivo de trackers.
-
-    Returns:
-        str | None: Conteúdo do arquivo como string, ou None em caso de falha.
-    """
     try:
         logger.info(f"Baixando: {url}")
         response = session.get(url, timeout=TIMEOUT)
@@ -104,16 +65,6 @@ def fetch_url_content(session: requests.Session, url: str) -> str | None:
 
 
 def extract_valid_lines(content: str) -> List[str]:
-    """
-    Extrai linhas válidas de um conteúdo bruto.
-    Critérios de validade: não vazia e não iniciada com '#'.
-
-    Args:
-        content (str): Conteúdo bruto do arquivo.
-
-    Returns:
-        List[str]: Lista de linhas consideradas trackers.
-    """
     lines = []
     for raw_line in content.splitlines():
         line = raw_line.strip()
@@ -122,34 +73,34 @@ def extract_valid_lines(content: str) -> List[str]:
     return lines
 
 
-def merge_unique_preserve_order(new_lines: List[str], seen: Set[str], ordered: List[str]) -> None:
-    """
-    Adiciona linhas novas à lista ordenada, evitando duplicatas.
-
-    Args:
-        new_lines (List[str]): Lista de linhas recém-processadas.
-        seen (Set[str]): Conjunto de trackers já vistos (para checagem O(1)).
-        ordered (List[str]): Lista que mantém a ordem de inserção.
-    """
+def merge_unique_preserve_order(
+    new_lines: List[str],
+    seen: Set[str],
+    ordered: List[str]
+) -> None:
     for line in new_lines:
         if line not in seen:
             seen.add(line)
             ordered.append(line)
 
 
-# ------------------------------------------------------------------------------
-# FUNÇÃO PRINCIPAL
-# ------------------------------------------------------------------------------
+def write_lines_output(trackers: List[str]) -> None:
+    content = "\n".join(trackers)
+    if trackers:
+        content += "\n"
+    with open(OUTFILE_LINES, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def write_comma_output(trackers: List[str]) -> None:
+    content = ", ".join(trackers)
+    if trackers:
+        content += "\n"
+    with open(OUTFILE_COMMA, "w", encoding="utf-8") as f:
+        f.write(content)
+
 
 def main() -> None:
-    """
-    Fluxo principal do script:
-    1. Cria sessão HTTP.
-    2. Itera sobre as URLs, baixa e processa cada uma.
-    3. Remove duplicatas e mantém ordem.
-    4. Escreve o resultado final no arquivo.
-    5. Exibe estatísticas.
-    """
     logger.info("=" * 50)
     logger.info("Iniciando atualização da lista de trackers...")
     logger.info("=" * 50)
@@ -166,21 +117,15 @@ def main() -> None:
 
         valid_lines = extract_valid_lines(content)
         logger.info(f"  -> {len(valid_lines)} trackers encontrados em {url}")
-
         merge_unique_preserve_order(valid_lines, seen_trackers, ordered_trackers)
 
-    # Prepara o conteúdo final
-    final_content = "\n".join(ordered_trackers)
-    if ordered_trackers:
-        final_content += "\n"  # Garante uma nova linha ao final do arquivo
-
-    # Escreve o arquivo
-    with open(OUTFILE, "w", encoding="utf-8") as f:
-        f.write(final_content)
+    write_lines_output(ordered_trackers)
+    write_comma_output(ordered_trackers)
 
     logger.info("=" * 50)
-    logger.info(f"Arquivo '{OUTFILE}' gerado com sucesso!")
-    logger.info(f"Total de trackers únicos: {len(ordered_trackers)}")
+    logger.info(f"Arquivos gerados com sucesso:")
+    logger.info(f"  - {OUTFILE_LINES} : {len(ordered_trackers)} trackers (um por linha)")
+    logger.info(f"  - {OUTFILE_COMMA} : {len(ordered_trackers)} trackers (formato vírgula)")
     logger.info(f"Total de URLs processadas: {len(URLS)}")
     logger.info("=" * 50)
 
