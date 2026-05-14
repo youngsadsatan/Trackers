@@ -18,6 +18,10 @@ URLS: List[str] = [
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt",
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt",
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_yggdrasil_ip.txt",
+    "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt",
+    "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/best.txt",
+    "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/http.txt",
+    "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/nohttp.txt",
 ]
 
 OUTFILE_LINES: str = "trackers.txt"
@@ -29,7 +33,7 @@ BACKOFF_FACTOR: float = 1.0
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt='%d-%m-%Y %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
 
